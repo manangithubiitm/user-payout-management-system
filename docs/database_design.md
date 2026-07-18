@@ -40,27 +40,16 @@ available wallet balance. - Track the last withdrawal timestamp.
 
 ------------------------------------------------------------------------
 
-## Brands
-
-Stores the supported brands available in the platform.
-
-**Responsibilities** - Maintain a centralized list of brands. - Avoid
-duplicating brand information across sales.
-
-**Key Fields** - `_id` - `brand_code` - `brand_name` - `is_active` -
-`created_at` - `updated_at`
-
-------------------------------------------------------------------------
 
 ## Sales
 
 Represents every customer purchase eligible for commission.
 
-**Responsibilities** - Store sale information. - Track approval
-status. - Prevent duplicate advance payouts. - Prevent duplicate
+**Responsibilities** - Store sale information, including the associated brand name. - Track the approval
+status of each sale. - Prevent duplicate advance payouts. - Prevent duplicate
 reconciliation.
 
-**Key Fields** - `_id` - `user_id` - `brand_id` - `sale_amount` -
+**Key Fields** - `_id` - `user_id` - `brand_name` - `sale_amount` -
 `commission_amount` - `status` - `advance_paid` - `reconciled` -
 `created_at` - `updated_at`
 
@@ -96,7 +85,6 @@ transactions.
 -   One User → Many Sales
 -   One User → Many Withdrawals
 -   One User → Many Transactions
--   One Brand → Many Sales
 -   One Sale → Many Transactions
 -   One Withdrawal → One or More Transactions (withdrawal/recovery)
 
@@ -148,9 +136,6 @@ transactions.
 
 -   Unique: `email`
 
-## Brands
-
--   Unique: `brand_code`
 
 ## Sales
 
@@ -173,12 +158,11 @@ transactions.
 
 # 7. Key Design Decisions
 
-## Decision 1 -- Separate Brands Collection
+## Decision 1 -- Store Brand Name in Sales
 
-A dedicated Brands collection was introduced even though the assignment
-references only `brand_1`, `brand_2`, and `brand_3`. This normalizes
-brand information and allows future attributes (commission rates, logos,
-status) without modifying Sales documents.
+Instead of maintaining a separate Brands collection, the brand name is stored directly within each Sale document. Since the
+assignment does not require brand management or additional brand metadata, this simplifies the data model, eliminates unnecessary
+lookups, and keeps the implementation focused on the assignment requirements. 
 
 ## Decision 2 -- Transactions as the Financial Ledger
 
@@ -203,8 +187,11 @@ payouts if scheduled jobs are retried.
   -----------------------------------------------------------------------
   Decision                Benefit                 Trade-off
   ----------------------- ----------------------- -----------------------
-  Separate Brands         Normalized and          One additional lookup
-  collection              extensible              
+  Store brand name        Simpler schema with       Brand names are duplicated across
+  in Sales                no additional collection  sale documents
+                          or lookup                                
+                  
+                    
 
   Transactions ledger     Complete audit trail    Slightly more logic
                                                   when recording events
