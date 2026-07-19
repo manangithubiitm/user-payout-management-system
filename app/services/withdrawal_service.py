@@ -76,3 +76,65 @@ class WithdrawalService:
             raise RuntimeError("Failed to update withdrawal.")
         
         return withdrawal_id
+
+    def mark_withdrawal_failed(self, withdrawal_id: str, status: WithdrawalStatus) -> dict:
+        """
+        Mark a completed withdrawal as FAILED or CANCELLED
+        """
+        if status not in (
+            WithdrawalStatus.FAILED,
+            WithdrawalStatus.CANCELLED,
+        ):
+            raise ValueError("Status must be FAILED or CANCELLED.")
+        
+        withdrawal = self.get_withdrawal_by_id(withdrawal_id)
+        if withdrawal["status"] != WithdrawalStatus.COMPLETED.value:
+            raise ValueError("Only completed withdrawals can be marked as failed or cancelled.")
+        updated = self.withdrawal_repository.update_withdrawal(
+            withdrawal_id,
+            {
+                "status": status.value,
+                "processed_at": datetime.utcnow(),
+            },
+        )
+        if updated == 0:
+            raise RuntimeError("Failed to update withdrawal")
+        updated_withdrawal = self.get_withdrawal_by_id(withdrawal_id)
+        self._perform_recovery(updated_withdrawal, withdrawal_id)
+        return self.get_withdrawal_by_id(withdrawal_id)
+
+    def recover_failed_withdrawal(self, withdrawal_id: str,) -> dict:
+        """
+        Recover a failed or cancelled withdrawal by crediting the wallet back.
+        """
+        withdrawal = self.get_withdrawal_by_id(withdrawal_id)
+        if withdrawal["status"] not in (
+            WithdrawalStatus.FAILED.value,
+            WithdrawalStatus.CANCELLED.value,
+        ):
+            raise ValueError("Only failed or cancelled withdrawals can be recovered.")
+        if withdrawal.get("recovered", False):
+            raise ValueError("Withdrawal has already been recovered.")
+        self._perform_recovery(withdrawal, withdrawal_id)
+        return self.get_withdrawal_by_id(withdrawal_id)
+    
+    def _perform_recovery(self, withdrawal: dict, withdrawal_id: str) -> None:
+        amount = Decimal(str(withdrawal["amount"]))
+        self.user_service.credit_wallet(withdrawal["user_id"], amount)
+        self.transaction_service.create_transaction(
+            user_id=withdrawal["user_id"],
+            reference_type=ReferenceType.WITHDRAWAL,
+            reference_id=withdrawal_id,
+            transaction_type=TransactionType.RECOVERY,
+            amount=amount,
+        )
+        self.user_service.update_last_withdrawal_time(withdrawal["user_id"], None)
+        updated = self.withdrawal_repository.update_withdrawal(
+            withdrawal_id,
+            {
+                "recovered": True,
+                "processed_at": datetime.utcnow(),
+            },
+        )
+        if updated == 0:
+            raise RuntimeError("Failed to update withdrawal.")

@@ -1,6 +1,8 @@
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from pymongo.collection import Collection
+from decimal import Decimal
+from bson.decimal128 import Decimal128
 
 class BaseRepository:
     def __init__(self, collection: Collection):
@@ -8,13 +10,33 @@ class BaseRepository:
     
     def _serialize_document(self, document: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """
-        Convert MongoDB ObjectId into string
+        Convert MongoDB-specific types into Python types.
         """
         if document is None:
             return None
-        serialized_document = document.copy()
+        serialized_document = self._convert_from_storage(document)
         serialized_document["_id"] = str(serialized_document["_id"])
         return serialized_document
+    
+    def _convert_from_storage(self, value: Any) -> Any:
+        """
+        Recursively convert MongoDB types into Python types.
+        """
+        if isinstance(value, Decimal128):
+            return value.to_decimal()
+        
+        if isinstance(value, dict):
+            return {
+                key: self._convert_from_storage(val)
+                for key, val in value.items()
+            }
+        
+        if isinstance(value, list):
+            return [
+                self._convert_from_storage(item)
+                for item in value
+            ]
+        return value
     
     def create(self, document: Dict[str, Any]) -> str:
         """
@@ -24,7 +46,8 @@ class BaseRepository:
         Returns:
             The inserted document ID as a string
         """
-        result = self.collection.insert_one(document)
+        prepared_document = self._prepare_document_for_storage(document)
+        result = self.collection.insert_one(prepared_document)
         return str(result.inserted_id)
     
     def find_by_id(self, document_id: str) -> Optional[Dict[str, Any]]:
@@ -62,7 +85,8 @@ class BaseRepository:
         """
         Update a single document.
         """
-        result  = self.collection.update_one(filters, {"$set": update_data})
+        prepared_update = self._prepare_document_for_storage(update_data)
+        result  = self.collection.update_one(filters, {"$set": prepared_update})
         return result.modified_count
     
     def delete_one(self, filters: Dict[str, Any]) -> int:
@@ -77,3 +101,22 @@ class BaseRepository:
         Convert a string ID to a MongoDB ObjectId.
         """
         return ObjectId(document_id)
+    
+    def _prepare_document_for_storage(self, value: Any) -> Any:
+        """
+        Recursively convert Python types into MongoDB-compatible types
+        """
+        if isinstance(value, Decimal):
+            return Decimal128(value)
+        if isinstance(value, dict):
+            return {
+                key: self._prepare_document_for_storage(val)
+                for key, val in value.items()
+            }
+        if isinstance(value, list):
+            return [
+                self._prepare_document_for_storage(item)
+                for item in value
+            ]
+
+        return value

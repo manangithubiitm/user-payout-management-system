@@ -26,5 +26,5 @@ class WithdrawalRepository(BaseRepository):
         """
         return self.update_one(
             {"_id": self._object_id(withdrawal_id)},
-            {"$set": update_data}
+            update_data
         )
