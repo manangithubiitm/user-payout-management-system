@@ -2,6 +2,8 @@
 
 A FastAPI-based backend service that manages users, sales, commissions, wallet balances, withdrawals, and payout recovery workflows using MongoDB.
 
+The project follows a layered architecture with separate models, repositories, services, and API routes to keep the business logic organized, maintainable, and easy to extend.
+
 ---
 
 ## Features
@@ -25,24 +27,44 @@ A FastAPI-based backend service that manages users, sales, commissions, wallet b
 - Python 3.x
 - FastAPI
 - MongoDB
-- Pydantic
 - PyMongo
+- Pydantic
 - Uvicorn
 
 ---
 
 ## Project Structure
 
+```text
+.
+├── app/
+│   ├── models/
+│   ├── repositories/
+│   ├── routes/
+│   ├── schemas/
+│   ├── services/
+│   ├── utils/
+│   └── main.py
+├── docs/
+├── requirements.txt
+├── README.md
+└── .gitignore
 ```
-app/
-├── models/
-├── repositories/
-├── routes/
-├── schemas/
-├── services/
-├── utils/
-└── main.py
-```
+
+---
+
+## Documentation
+
+Detailed project documentation is available in the `docs/` directory.
+
+- Project Overview
+- System Architecture
+- Low Level Design (LLD)
+- API Design
+- Business Rules
+- Database Design
+- Testing Guide
+- Assumptions
 
 ---
 
@@ -50,24 +72,21 @@ app/
 
 ### Users
 
-- POST /users
-- GET /users/{user_id}
+- `POST /users`
+- `GET /users/{user_id}`
 
 ### Sales
 
-- POST /sales
-- GET /sales/{sale_id}
-- POST /sales/{sale_id}/approve
+- `POST /sales`
+- `GET /sales/{sale_id}`
+- `POST /sales/{sale_id}/approve`
+- `POST /sales/{sale_id}/reject`
 
 ### Withdrawals
 
-- POST /withdrawals
-- GET /withdrawals/{withdrawal_id}
-- POST /withdrawals/{withdrawal_id}/status
-
-### Transactions
-
-- GET /transactions
+- `POST /withdrawals`
+- `GET /withdrawals/{withdrawal_id}`
+- `POST /withdrawals/{withdrawal_id}/status`
 
 ---
 
@@ -81,24 +100,19 @@ app/
 ### Sale Approval
 
 - Credits the remaining 90% commission.
-- Updates wallet balance.
-- Records transactions.
+- Updates the user's wallet balance.
+- Records the payout transaction.
 
 ### Withdrawal
 
 - Validates wallet balance.
 - Enforces a 24-hour cooldown between withdrawals.
-- Debits the wallet.
-- Records withdrawal transactions.
+- Deducts the withdrawal amount from the wallet.
+- Records the withdrawal transaction.
 
 ### Failed Payout Recovery
 
-If a withdrawal is marked as:
-
-- FAILED
-- CANCELLED
-
-The system:
+If a withdrawal is marked as **FAILED** or **CANCELLED**, the system:
 
 - Refunds the wallet balance.
 - Creates a RECOVERY transaction.
@@ -121,13 +135,13 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
-Run the server
+Run the application
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Open Swagger UI
+Open the API documentation
 
 ```
 http://127.0.0.1:8000/docs
