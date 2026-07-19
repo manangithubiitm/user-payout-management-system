@@ -1,6 +1,7 @@
 from decimal import Decimal
 from app.models.user import User
 from datetime import datetime
+from typing import Optional
 from app.repositories.user_repository import UserRepository
 
 class UserService:
@@ -90,9 +91,11 @@ class UserService:
         """
         return self.user_repository.find_by_id(user_id) is not None
     
-    def update_last_withdrawal_time(self, user_id: str, withdrawal_time: datetime,) -> None:
+    def update_last_withdrawal_time(self, user_id: str, withdrawal_time: Optional[datetime],) -> None:
         """
         Update the user's last withdrawal time.
+        Pass None to remove the withdrawal restriction after
+        a recovered payout.
         """
         updated = self.user_repository.update_last_withdrawal_time(
             user_id,
