@@ -21,9 +21,10 @@ class UserRepository(BaseRepository):
         """
         return self.update_one({"_id": self._object_id(user_id)}, {"wallet_balance": wallet_balance})
     
-    def update_last_withdrawal_time(self, user_id: str, withdrawal_time: datetime) -> int:
+    def update_last_withdrawal_time(self, user_id: str, withdrawal_time: Optional[datetime]) -> int:
         """
-        Update the timestamp of the user's last withdrawal
+        Update the timestamp of the user's last withdrawal.
+        Pass None to clear the withdrawal restriction.
         """
         return self.update_one(
             {"_id": self._object_id(user_id)},

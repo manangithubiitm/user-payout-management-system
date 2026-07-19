@@ -14,12 +14,19 @@ class WithdrawalCreate(WithdrawalBase):
     """
     pass
 
+class WithdrawalStatusUpdate(BaseModel):
+    """
+    Request schema for updating the payout status.
+    """
+    status: WithdrawalStatus
+
 class WithdrawalResponse(WithdrawalBase):
     """
     Response schema for returning withdrawal details.
     """
     id: str
     status: WithdrawalStatus
+    recovered: bool
     requested_at: datetime
     processed_at: datetime | None
     created_at: datetime

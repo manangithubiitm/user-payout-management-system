@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from app.models.withdrawal import Withdrawal
-from app.schemas.withdrawal import (WithdrawalCreate, WithdrawalResponse)
+from app.schemas.withdrawal import (WithdrawalCreate, WithdrawalResponse, WithdrawalStatusUpdate)
 from app.services.withdrawal_service import WithdrawalService
 from app.utils.response_mapper import map_withdrawal_response
 
@@ -45,5 +45,31 @@ def get_withdrawal(withdrawal_id: str):
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+
+@router.post(
+    "/{withdrawal_id}/status",
+    response_model=WithdrawalResponse,
+)
+def update_withdrawal_status(
+    withdrawal_id: str,
+    status_update: WithdrawalStatusUpdate,
+):
+    try:
+        updated_withdrawal = withdrawal_service.mark_withdrawal_failed(
+            withdrawal_id, 
+            status_update.status,
+        )
+        return map_withdrawal_response(updated_withdrawal)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )

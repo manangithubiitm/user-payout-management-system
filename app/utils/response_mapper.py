@@ -33,6 +33,7 @@ def map_withdrawal_response(withdrawal: dict) -> WithdrawalResponse:
         user_id=withdrawal["user_id"],
         amount=withdrawal["amount"],
         status=withdrawal["status"],
+        recovered=withdrawal.get("recovered", False),
         requested_at=withdrawal["requested_at"],
         processed_at=withdrawal["processed_at"],
         created_at=withdrawal["created_at"],
