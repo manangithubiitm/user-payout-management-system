@@ -31,5 +31,5 @@ class SaleRepository(BaseRepository):
         """
         return self.update_one(
             {"_id": self._object_id(sale_id)},
-            {"$set": update_data}
+            update_data,
         )
